@@ -1,0 +1,93 @@
+---
+title: "Importing data from MySQL to R"
+author: "Huruy Belay"
+date: "June 28, 2017"
+output: html_document
+---
+
+We can import data from MySQL to R. To can import data using two methods. The first one isusing the RMySQL Package. Here we will use the DBI package.DBI package is one of the RMySQL packages. The second one is using the SQL query. We will see each of the methods one by one:
+
+#### I: Using RMySQL Pachage
+
+##### Loading the DBI package
+
+```{r}
+library(DBI)
+```
+
+* **The first step is connecting R to the database**.
+
+```{r}
+con <- dbConnect(RMySQL::MySQL(), 
+                 dbname = "tweater", 
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com", 
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+con
+```
+
+After connecting to R, we can list the tables.
+
+```{r}
+table_names <- dbListTables(con)
+table_names
+```
+
+We have three tables in the database and we can now read/import one of the tables. Lets import the comments table.
+
+```{r}
+dbReadTable(con, "comments")
+```
+
+In the above, we only read one table at a time but we can import the whole tables in the database. To do this, we can use the lapply function.
+
+```{r, results='hide'}
+tables <- lapply(table_names, dbReadTable, conn = con)
+tables
+```
+
+#### II: Using the SQL Query
+
+Using RMySQL package method of importing data from SQL is appropriate if our data is small. However, it is very difficult to apply the MySQL package if our data is big. For big data the SQL Query is appropriate. To use this method it is better if we know the SQL syntax.
+
+To import data for SQL, we will use the following steps.
+* Import tweat_id column of comments where user_id is 1: elisabeth
+
+```{r}
+elisabeth <- dbGetQuery(con, "SELECT tweat_id FROM comments WHERE user_id=1")
+elisabeth
+```
+
+* Import post from the tweats table, where date>'2015-09-21'
+
+```{r}
+latest <- dbGetQuery(con, "SELECT post FROM  tweats WHERE date>'2015-09-21'")
+latest
+
+specific <- dbGetQuery(con, "SELECT message FROM comments WHERE tweat_id=77 AND user_id > 4")
+specific
+
+short <- dbGetQuery(con, " SELECT id,  name FROM users WHERE CHAR_LENGTH(name)<5")
+short
+```
+
+The other method to import using SQL database is:
+
+```{r}
+res <- dbSendQuery(con, "SELECT * FROM comments WHERE user_id > 4")
+
+dbFetch(res, n=2)  ## the first two records
+dbFetch(res)
+
+dbClearResult(res)
+```
+
+The above method is nice if we want to fetch our data.
+
+Finally after we finished our work, we have to disconnect the connection we created.
+
+```{r}
+dbDisconnect(con)
+```
+
